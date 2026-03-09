@@ -4,13 +4,6 @@ __generated_with = "0.20.4"
 app = marimo.App()
 
 
-@app.cell
-def _():
-    import marimo as mo
-
-    return (mo,)
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -34,9 +27,10 @@ def _():
     from matplotlib.lines import Line2D
     import matplotlib.gridspec as gridspec
     import os
-    import marimo
+    import marimo as mo
 
-    return Circle, Line2D, animation, np, os, plt
+    file = mo.notebook_location()
+    return Circle, Line2D, animation, file, mo, np, os, plt
 
 
 @app.cell
@@ -410,6 +404,7 @@ def _(
     RNG_SEED,
     T_TOTAL,
     animation,
+    file,
     init_circ,
     np,
     os,
@@ -477,7 +472,7 @@ def _(
     fig1.set_facecolor('white')
     anim1 = animation.FuncAnimation(fig1, update_circ, init_func=init_circ, frames=n_frames_c, interval=40, blit=False)
     fig1.tight_layout(rect=[0, 0, 1, 0.95])
-    out1 = './outputs/kuramoto/kuramoto_circle.gif'
+    out1 = str(file) + './outputs/kuramoto/kuramoto_circle.gif'
     _out_dir = os.path.dirname(out1)
     # Centroid dot
     if _out_dir:
@@ -513,6 +508,7 @@ def _(
     N_STEPS,
     T_TOTAL,
     animation,
+    file,
     init2,
     np,
     os,
@@ -556,7 +552,7 @@ def _(
     anim2 = animation.FuncAnimation(fig2, update2, init_func=init2, frames=n_frames2, interval=40, blit=False)
     fig2.tight_layout()
     # Theoretical asymptotic r\infinity markers
-    out2 = './outputs/kuramoto/kuramoto_multi_K.gif'
+    out2 = str(file) + './outputs/kuramoto/kuramoto_multi_K.gif'
     _out_dir = os.path.dirname(out2)
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
@@ -576,6 +572,7 @@ def _(
     K_th,
     N,
     animation,
+    file,
     init3,
     os,
     plt,
@@ -610,7 +607,7 @@ def _(
     anim3 = animation.FuncAnimation(fig3, update3, init_func=init3, frames=n_frames3, interval=120, blit=False)
     fig3.tight_layout()
     # Plot full theoretical curve in background (faint)
-    out3 = './outputs/kuramoto/kuramoto_bifurcation.gif'
+    out3 = str(file) + './outputs/kuramoto/kuramoto_bifurcation.gif'
     # Animated version of the same
     _out_dir = os.path.dirname(out3)
     if _out_dir:
@@ -632,7 +629,7 @@ def _(mo):
 
     This simulation generates three complementary animations saved as GIFs:
 
-    ![Kuramoto Phase Oscillations Animation](./outputs/kuramoto/kuramoto_circle.gif)
+    ![Kuramoto Phase Oscillations Animation](public/kuramoto/kuramoto_circle.gif)
 
     **Animation 1: Phase Oscillators on the Unit Circle**
     - Shows how individual oscillator phases evolve over time on the complex plane
@@ -642,7 +639,7 @@ def _(mo):
 
     **Animation 2: Synchronisation Dynamics Across Multiple Coupling Strengths**
 
-    ![Kuramoto Multi-K Animation](./outputs/kuramoto/kuramoto_multi_K.gif)
+    ![Kuramoto Multi-K Animation](public/kuramoto/kuramoto_multi_K.gif)
 
     This animation demonstrates how the order parameter $r(t)$ evolves differently depending on the coupling strength $K$:
     - **$K = 0.3$ (red, subcritical)**: Remains incoherent with $r \approx 0$ throughout
@@ -653,7 +650,7 @@ def _(mo):
 
     The shaded background distinguishes the incoherent phase (left) from the synchronised phase (right) relative to $K_c = 1.0$.
 
-    ![Kuramoto Bifurcation Animation](./outputs/kuramoto/kuramoto_bifurcation.gif)
+    ![Kuramoto Bifurcation Animation](public/kuramoto/kuramoto_bifurcation.gif)
 
     **Animation 3: Bifurcation Diagram — Theory vs. Simulation**
     - Sweeps coupling strength from $K = 0$ to $K = 3.0$
