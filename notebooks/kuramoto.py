@@ -190,7 +190,7 @@ def _(np):
         """
         diff = theta[np.newaxis, :] - theta[:, np.newaxis]
         coupling = np.sum(np.sin(diff), axis=1)
-        dtheta_dt = omega + _K / N * coupling
+        dtheta_dt = omega + K / N * coupling
         r, psi = order_parameter(theta)
         return (dtheta_dt, r, psi)
 
@@ -408,7 +408,7 @@ def _(
         return (scat_pts, r_line, centroid_dot)
     anim1 = animation.FuncAnimation(fig1, update_circ, init_func=init_circ, frames=n_frames_c, interval=40, blit=False)
     fig1.tight_layout(rect=[0, 0, 1, 0.95])
-    out1 = str(file) + './outputs/kuramoto/kuramoto_circle.gif'
+    out1 = 'outputs/kuramoto/kuramoto_circle.gif'
     _out_dir = os.path.dirname(out1)
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
@@ -488,7 +488,7 @@ def _(
         return list(lines2.values())
     anim2 = animation.FuncAnimation(fig2, update2, init_func=init2, frames=n_frames2, interval=40, blit=False)
     fig2.tight_layout()
-    out2 = str(file) + './outputs/kuramoto/kuramoto_multi_K.gif'
+    out2 = 'outputs/kuramoto/kuramoto_multi_K.gif'
     _out_dir = os.path.dirname(out2)
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
@@ -561,7 +561,7 @@ def _(
         return (th_line, sim_scat, current_vline)
     anim3 = animation.FuncAnimation(fig3, update3, init_func=init3, frames=n_frames3, interval=120, blit=False)
     fig3.tight_layout()
-    out3 = str(file) + './outputs/kuramoto/kuramoto_bifurcation.gif'
+    out3 = 'outputs/kuramoto/kuramoto_bifurcation.gif'
     _out_dir = os.path.dirname(out3)
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
@@ -580,7 +580,7 @@ def _(mo):
 
     This simulation generates three complementary animations saved as GIFs:
 
-    ![Kuramoto Phase Oscillations Animation](./outputs/kuramoto/kuramoto_circle.gif)
+    ![Kuramoto Phase Oscillations Animation](public/kuramoto/kuramoto_circle.gif)
 
     **Animation 1: Phase Oscillators on the Unit Circle**
     - Shows how individual oscillator phases evolve over time on the complex plane
@@ -590,7 +590,7 @@ def _(mo):
 
     **Animation 2: Synchronisation Dynamics Across Multiple Coupling Strengths**
 
-    ![Kuramoto Multi-K Animation](./outputs/kuramoto/kuramoto_multi_K.gif)
+    ![Kuramoto Multi-K Animation](public/kuramoto/kuramoto_multi_K.gif)
 
     This animation demonstrates how the order parameter $r(t)$ evolves differently depending on the coupling strength $K$:
     - **$K = 0.3$ (red, subcritical)**: Remains incoherent with $r \approx 0$ throughout
@@ -601,7 +601,7 @@ def _(mo):
 
     The shaded background distinguishes the incoherent phase (left) from the synchronised phase (right) relative to $K_c = 1.0$.
 
-    ![Kuramoto Bifurcation Animation](./outputs/kuramoto/kuramoto_bifurcation.gif)
+    ![Kuramoto Bifurcation Animation](public/kuramoto/kuramoto_bifurcation.gif)
 
     **Animation 3: Bifurcation Diagram — Theory vs. Simulation**
     - Sweeps coupling strength from $K = 0$ to $K = 3.0$
