@@ -104,18 +104,18 @@ def _(np):
         """
         Draw N natural frequencies from the Lorentzian (Cauchy) distribution:
 
-            g(ω) = γ/π / (γ² + ω²)
+            g(omega) = gamma/pi / (gamma^2 + omega^2)
 
         This is the distribution used in Kuramoto's original exact solution.
-        The critical coupling is K_c = 2γ.  We use numpy's standard Cauchy
-        sampler scaled by γ and centred at zero so the mean is zero,
-        which corresponds to working in the rotating frame of Ω = 0.
+        The critical coupling is K_c = 2*gamma.  We use numpy's standard Cauchy
+        sampler scaled by gamma and centred at zero so the mean is zero,
+        which corresponds to working in the rotating frame of Omega = 0.
         """
         return gamma * rng.standard_cauchy(N)
 
     def order_parameter(theta):
         """
-        Compute the complex order parameter r·e^{iψ} (Eq. 2 of paper).
+        Compute the complex order parameter r·e^{ipsi} (Eq. 2 of paper).
     #  KURAMOTO DYNAMICS  (vectorised Euler integrator)
 
         Parameters
@@ -124,7 +124,7 @@ def _(np):
 
         Returns
         -------
-        r   : float – synchronisation amplitude  ∈ [0, 1]
+        r   : float – synchronisation amplitude epsilon [0, 1]
         psi : float – mean phase [radians]
         """
         z = np.mean(np.exp(1j * theta))
@@ -136,9 +136,9 @@ def _(np):
         """
         Right-hand side of the Kuramoto equation for all-to-all coupling (Eq. 3):
 
-            dθ_i/dt = ω_i + K·r·sin(ψ - θ_i)
+            dtheta_i/dt = omega_i + K·r·sin(psi - theta_i)
 
-        Using the mean-field form is O(N) instead of the naive O(N²) double sum.
+        Using the mean-field form is O(N) instead of the naive O(N^2) double sum.
         Both formulations are mathematically equivalent for global coupling.
 
         Parameters
@@ -163,12 +163,12 @@ def _(np):
         Right-hand side of the Kuramoto equation using the explicit all-to-all
         pairwise double sum — Eq. (1) of the paper:
 
-            dθ_i/dt = ω_i + (K/N) * Σ_{j=1}^{N} sin(θ_j - θ_i)
+            dtheta_i/dt = omega_i + (K/N) * Sigma_{j=1}^{N} sin(theta_j - theta_i)
 
         Implementation:
-            diff[i,j] = θ_j - θ_i  is formed as the outer difference
+            diff[i,j] = theta_j - theta_i  is formed as the outer difference
                         theta[np.newaxis,:] - theta[:,np.newaxis]
-            This is an (N x N) matrix; row i contains (θ_j - θ_i) for all j.
+            This is an (N x N) matrix; row i contains (theta_j - theta_i) for all j.
             Taking sin() elementwise and summing over axis=1 (over j) gives
             the coupling term for each oscillator i exactly, with no
             mean-field approximation.
@@ -220,7 +220,7 @@ def _(np):
         theta_hist[0] = theta
         r_hist[0], psi_hist[0] = order_parameter(theta)
         for step in range(1, n_steps + 1):
-            drv, r, psi = kuramoto_ata(theta, omega, _K, N)
+            drv, r, psi = kuramoto_ata(theta, omega, K, N)
             theta = theta + dt * drv
             theta = (theta + np.pi) % (2 * np.pi) - np.pi
             theta_hist[step] = theta
@@ -280,15 +280,15 @@ def _(
     omega = sample_lorentzian(N, GAMMA, rng)
     theta0 = rng.uniform(-np.pi, np.pi, N)
     trajs = {}
-    for _K in K_VALUES:
+    for K in K_VALUES:
     # Initial phases drawn uniformly – fully incoherent start
-        trajs[_K] = simulate(N, _K, omega, theta0, DT, N_STEPS)
-        print(f'  K = {_K:.2f} --> r_inf ≈ {trajs[_K][1][-200:].mean():.3f}')
+        trajs[K] = simulate(N, K, omega, theta0, DT, N_STEPS)
+        print(f'  K = {K:.2f} --> r_inf ≈ {trajs[K][1][-200:].mean():.3f}')
     # Dictionary:  K  →  (theta_hist, r_hist, psi_hist)
     print('Pre-computing bifurcation sweep …')
     bif_r = []
-    for _K in K_SWEEP:
-        _, r_h, _ = simulate(N, _K, omega, theta0, DT, N_STEPS)
+    for K in K_SWEEP:
+        _, r_h, _ = simulate(N, K, omega, theta0, DT, N_STEPS)
         bif_r.append(r_h[int(0.8 * N_STEPS):].mean())
     # Bifurcation sweep: for each K, run until steady state
     bif_r = np.array(bif_r)
@@ -458,14 +458,14 @@ def _(
     ax2.axhline(0, color='#cc0e0e', lw=0.6)
     ax2.axhline(1, color='#b80b0b', lw=0.6)
     lines2 = {}
-    for _K, col in zip(K_VALUES, K_COLORS):
-        lbl = f'K = {_K:.1f}' + (' (= K_c)' if abs(_K - K_CRITICAL) < 0.05 else '')
+    for K, col in zip(K_VALUES, K_COLORS):
+        lbl = f'K = {K:.1f}' + (' (= K_c)' if abs(K - K_CRITICAL) < 0.05 else '')
         ln, = ax2.plot([], [], '-', color=col, lw=2.0, label=lbl)
-        lines2[_K] = ln
+        lines2[K] = ln
     # Shade sub-critical and super-critical regions
-    for _K, col in zip(K_VALUES, K_COLORS):
-        if _K > K_CRITICAL:
-            r_inf = np.sqrt(1.0 - K_CRITICAL / _K)
+    for K, col in zip(K_VALUES, K_COLORS):
+        if K > K_CRITICAL:
+            r_inf = np.sqrt(1.0 - K_CRITICAL / K)
             ax2.axhline(r_inf, color=col, linestyle=':', lw=1.0, alpha=0.6)
     ax2.axvline(0, color='black', lw=0)
     t_kc = ax2.text(0.5, 0.45, f' K_c = {K_CRITICAL:.2f} separates\n   incoherent (low K) from\n   synchronised (high K)', color='#5353e0', fontsize=8.5, transform=ax2.transAxes, va='center')
@@ -580,7 +580,7 @@ def _(mo):
 
     This simulation generates three complementary animations saved as GIFs:
 
-    ![Kuramoto Phase Oscillations Animation](public/kuramoto/kuramoto_circle.gif)
+    ![Kuramoto Phase Oscillations Animation](./outputs/kuramoto/kuramoto_circle.gif)
 
     **Animation 1: Phase Oscillators on the Unit Circle**
     - Shows how individual oscillator phases evolve over time on the complex plane
@@ -590,7 +590,7 @@ def _(mo):
 
     **Animation 2: Synchronisation Dynamics Across Multiple Coupling Strengths**
 
-    ![Kuramoto Multi-K Animation](public/kuramoto/kuramoto_multi_K.gif)
+    ![Kuramoto Multi-K Animation](./outputs/kuramoto/kuramoto_multi_K.gif)
 
     This animation demonstrates how the order parameter $r(t)$ evolves differently depending on the coupling strength $K$:
     - **$K = 0.3$ (red, subcritical)**: Remains incoherent with $r \approx 0$ throughout
@@ -601,7 +601,7 @@ def _(mo):
 
     The shaded background distinguishes the incoherent phase (left) from the synchronised phase (right) relative to $K_c = 1.0$.
 
-    ![Kuramoto Bifurcation Animation](public/kuramoto/kuramoto_bifurcation.gif)
+    ![Kuramoto Bifurcation Animation](./outputs/kuramoto/kuramoto_bifurcation.gif)
 
     **Animation 3: Bifurcation Diagram — Theory vs. Simulation**
     - Sweeps coupling strength from $K = 0$ to $K = 3.0$
