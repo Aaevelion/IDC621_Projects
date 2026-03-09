@@ -97,35 +97,7 @@ def _(mo):
 
 
 @app.cell
-def _(
-    DT,
-    K_CRITICAL,
-    K_SWEEP,
-    K_th,
-    arrow_op,
-    bif_r,
-    centroid_dot,
-    current_vline,
-    frames2,
-    frames_circ,
-    lines2,
-    np,
-    osc_colors,
-    psi_hist_d,
-    r_hist_d,
-    r_line,
-    r_text_c,
-    r_th,
-    scat_pts,
-    sim_scat,
-    status_txt,
-    th_hist,
-    th_line,
-    time_axis,
-    time_text_c,
-    time_txt2,
-    trajs,
-):
+def _(np):
     # ─────────────────────────────────────────────────────────────
     #  NATURAL FREQUENCY SAMPLING
     def sample_lorentzian(N, gamma, rng):
@@ -254,73 +226,9 @@ def _(
             theta_hist[step] = theta
             r_hist[step] = r
             psi_hist[step] = psi
-        return (theta_hist, r_hist, psi_hist)
+        return (theta_hist, r_hist, psi_hist)  # Euler step  # wrap to (−π,π]
 
-    def init_circ():
-        scat_pts.set_offsets(np.empty((0, 2)))
-        r_line.set_data([], [])
-        centroid_dot.set_data([], [])
-        return (scat_pts, r_line, centroid_dot)
-      # Euler step
-    def update_circ(frame_idx):  # wrap to (−π,π]
-        step = list(frames_circ)[frame_idx]
-        theta = th_hist[step]
-        r_val = r_hist_d[step]
-        psi_v = psi_hist_d[step]
-        xs = np.cos(theta)
-        ys = np.sin(theta)
-        scat_pts.set_offsets(np.column_stack([xs, ys]))
-        scat_pts.set_color(osc_colors)
-        rx, ry = (r_val * np.cos(psi_v), r_val * np.sin(psi_v))
-        arrow_op.set_position((rx, ry))
-        arrow_op.xy = (rx, ry)
-        arrow_op.xytext = (0.0, 0.0)
-        centroid_dot.set_data([rx], [ry])
-        t_now = step * DT
-        r_line.set_data(time_axis[:step + 1], r_hist_d[:step + 1])
-        time_text_c.set_text(f't = {t_now:.1f} s')
-        r_text_c.set_text(f'r = {r_val:.3f}')
-        return (scat_pts, r_line, centroid_dot)
-      # Positions on unit circle
-    def init2():
-        for ln in lines2.values():
-            ln.set_data([], [])
-        return list(lines2.values())
-
-    def update2(frame_idx):  # Order parameter arrow
-        step = list(frames2)[frame_idx]
-        for _K, ln in lines2.items():
-            _, r_h, _ = trajs[_K]
-            ln.set_data(time_axis[:step + 1], r_h[:step + 1])
-        time_txt2.set_text(f't = {step * DT:.1f} s')
-        return list(lines2.values())
-      # Traces
-    def init3():
-        th_line.set_data([], [])
-        sim_scat.set_offsets(np.empty((0, 2)))
-        current_vline.set_xdata([0])
-        return (th_line, sim_scat, current_vline)
-
-    def update3(frame_idx):
-        k_now = K_SWEEP[frame_idx]
-        mask = K_th <= k_now
-        th_line.set_data(K_th[mask], r_th[mask])
-        sim_scat.set_offsets(np.column_stack([K_SWEEP[:frame_idx + 1], bif_r[:frame_idx + 1]]))
-        current_vline.set_xdata([k_now])
-        label = 'INCOHERENT' if k_now < K_CRITICAL else 'SYNCHRONISED'
-        status_txt.set_text(f'K = {k_now:.2f}   →   {label}')
-        return (th_line, sim_scat, current_vline)  # Theory line up to current K  # Simulation dots up to current K
-
-    return (
-        init2,
-        init3,
-        init_circ,
-        sample_lorentzian,
-        simulate,
-        update2,
-        update3,
-        update_circ,
-    )
+    return sample_lorentzian, simulate
 
 
 @app.cell(hide_code=True)
@@ -405,13 +313,12 @@ def _(
     T_TOTAL,
     animation,
     file,
-    init_circ,
     np,
     os,
     plt,
     sample_lorentzian,
     simulate,
-    update_circ,
+    time_axis,
 ):
     # ─────────────────────────────────────────────────────────────
     #  ANIMATION 1: Phase oscillators on the unit circle
@@ -470,36 +377,51 @@ def _(
     r_line, = ax_r.plot([], [], '-', color='#d62728', lw=1.8, label='r(t)')
     # Order parameter arrow (from origin to r·e^{iψ})
     fig1.set_facecolor('white')
+
+    def init_circ():
+        scat_pts.set_offsets(np.empty((0, 2)))
+        r_line.set_data([], [])
+    # Centroid dot
+        centroid_dot.set_data([], [])
+        return (scat_pts, r_line, centroid_dot)
+
+    def update_circ(frame_idx):
+        step = list(frames_circ)[frame_idx]
+        theta = th_hist[step]
+        r_val = r_hist_d[step]
+    # Legend for colour coding
+        psi_v = psi_hist_d[step]
+        xs = np.cos(theta)
+        ys = np.sin(theta)
+        scat_pts.set_offsets(np.column_stack([xs, ys]))
+        scat_pts.set_color(osc_colors)
+        rx, ry = (r_val * np.cos(psi_v), r_val * np.sin(psi_v))
+        arrow_op.set_position((rx, ry))
+        arrow_op.xy = (rx, ry)
+        arrow_op.xytext = (0.0, 0.0)
+        centroid_dot.set_data([rx], [ry])
+        t_now = step * DT
+        r_line.set_data(time_axis[:step + 1], r_hist_d[:step + 1])
+        time_text_c.set_text(f't = {t_now:.1f} s')
+    # ---- right panel: r(t) trace ----
+        r_text_c.set_text(f'r = {r_val:.3f}')
+        return (scat_pts, r_line, centroid_dot)
     anim1 = animation.FuncAnimation(fig1, update_circ, init_func=init_circ, frames=n_frames_c, interval=40, blit=False)
     fig1.tight_layout(rect=[0, 0, 1, 0.95])
     out1 = str(file) + './outputs/kuramoto/kuramoto_circle.gif'
     _out_dir = os.path.dirname(out1)
-    # Centroid dot
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
     print('  Saving …')
     anim1.save(out1, writer='pillow', fps=25, dpi=100)
     plt.close(fig1)
-    # Legend for colour coding
-    # ---- right panel: r(t) trace ----
-    print(f'  --> {out1}')
-    return (
-        arrow_op,
-        centroid_dot,
-        frames_circ,
-        osc_colors,
-        psi_hist_d,
-        r_hist_d,
-        r_line,
-        r_text_c,
-        scat_pts,
-        th_hist,
-        time_text_c,
-    )
+    print(f'  --> {out1}')  # Positions on unit circle  # Order parameter arrow  # Traces
+    return
 
 
 @app.cell
 def _(
+    DT,
     GAMMA,
     K_COLORS,
     K_CRITICAL,
@@ -509,11 +431,11 @@ def _(
     T_TOTAL,
     animation,
     file,
-    init2,
     np,
     os,
     plt,
-    update2,
+    time_axis,
+    trajs,
 ):
     # ─────────────────────────────────────────────────────────────
     #  ANIMATION 2: r(t) for multiple K values simultaneously
@@ -549,19 +471,32 @@ def _(
     t_kc = ax2.text(0.5, 0.45, f' K_c = {K_CRITICAL:.2f} separates\n   incoherent (low K) from\n   synchronised (high K)', color='#5353e0', fontsize=8.5, transform=ax2.transAxes, va='center')
     ax2.legend(facecolor='#ffffff', edgecolor='#333333', labelcolor='black', fontsize=9, loc='upper left')
     time_txt2 = ax2.text(0.98, 0.03, '', transform=ax2.transAxes, ha='right', color='black', fontsize=9)
+
+    def init2():
+    # Theoretical asymptotic r\infinity markers
+        for ln in lines2.values():
+            ln.set_data([], [])
+        return list(lines2.values())
+
+    def update2(frame_idx):
+    # Annotate K_c
+        step = list(frames2)[frame_idx]
+        for _K, ln in lines2.items():
+            _, r_h, _ = trajs[_K]
+            ln.set_data(time_axis[:step + 1], r_h[:step + 1])
+        time_txt2.set_text(f't = {step * DT:.1f} s')
+        return list(lines2.values())
     anim2 = animation.FuncAnimation(fig2, update2, init_func=init2, frames=n_frames2, interval=40, blit=False)
     fig2.tight_layout()
-    # Theoretical asymptotic r\infinity markers
     out2 = str(file) + './outputs/kuramoto/kuramoto_multi_K.gif'
     _out_dir = os.path.dirname(out2)
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
     print('  Saving …')
-    # Annotate K_c
     anim2.save(out2, writer='pillow', fps=25, dpi=100)
     plt.close(fig2)
     print(f'  --> {out2}')
-    return frames2, lines2, time_txt2
+    return
 
 
 @app.cell
@@ -572,12 +507,12 @@ def _(
     K_th,
     N,
     animation,
+    bif_r,
     file,
-    init3,
+    np,
     os,
     plt,
     r_th,
-    update3,
 ):
     # ─────────────────────────────────────────────────────────────
     #  ANIMATION 3: Bifurcation diagram sweep  r_inf  vs  K
@@ -604,22 +539,38 @@ def _(
     ax3.fill_betweenx([0, 1.1], K_CRITICAL, K_SWEEP[-1], color='#d5f4e6', alpha=0.5, label='Synchronised phase')
     ax3.legend(facecolor='white', edgecolor='#333333', labelcolor='black', fontsize=9, loc='upper left')
     status_txt = ax3.text(0.98, 0.05, '', transform=ax3.transAxes, ha='right', color='black', fontsize=10)
+
+    def init3():
+    # Plot full theoretical curve in background (faint)
+        th_line.set_data([], [])
+    # Animated version of the same
+        sim_scat.set_offsets(np.empty((0, 2)))
+        current_vline.set_xdata([0])
+        return (th_line, sim_scat, current_vline)
+    # Simulation scatter (grown dot by dot)
+
+    def update3(frame_idx):
+        k_now = K_SWEEP[frame_idx]
+    # Indicator vertical line for current K
+        mask = K_th <= k_now
+        th_line.set_data(K_th[mask], r_th[mask])
+        sim_scat.set_offsets(np.column_stack([K_SWEEP[:frame_idx + 1], bif_r[:frame_idx + 1]]))
+        current_vline.set_xdata([k_now])
+        label = 'INCOHERENT' if k_now < K_CRITICAL else 'SYNCHRONISED'
+        status_txt.set_text(f'K = {k_now:.2f}   →   {label}')
+        return (th_line, sim_scat, current_vline)
     anim3 = animation.FuncAnimation(fig3, update3, init_func=init3, frames=n_frames3, interval=120, blit=False)
     fig3.tight_layout()
-    # Plot full theoretical curve in background (faint)
     out3 = str(file) + './outputs/kuramoto/kuramoto_bifurcation.gif'
-    # Animated version of the same
     _out_dir = os.path.dirname(out3)
     if _out_dir:
         os.makedirs(_out_dir, exist_ok=True)
-    # Simulation scatter (grown dot by dot)
     print('  Saving …')
     anim3.save(out3, writer='pillow', fps=8, dpi=100)
     plt.close(fig3)
-    # Indicator vertical line for current K
     print(f'  --> {out3}')
-    print('\nAll animations saved successfully.')
-    return current_vline, sim_scat, status_txt, th_line
+    print('\nAll animations saved successfully.')  # Theory line up to current K  # Simulation dots up to current K
+    return
 
 
 @app.cell(hide_code=True)
